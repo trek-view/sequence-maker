@@ -93,7 +93,7 @@ python sequence-maker.py -frame_rate 1 horizontal_distance_min 3 -time my_input_
 
 ### Output
 
-Sequence maker will generate new photo files with JSON objects with destination connections printed under the [XMP] `Notes` tag:
+Sequence maker will generate new photo files with JSON objects with destination connections printed under the [EXIF] `ImageDescription` tag:
 
 ```
 {
