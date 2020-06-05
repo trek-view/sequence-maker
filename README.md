@@ -49,8 +49,6 @@ All images must be geotagged with the following values:
 * `GPDateStamp`
 * `GPDateTime`
 
-{"MAPDeviceMake": "GoPro", "MAPOrientation": 1, "MAPAltitude": 180.129, "MAPSettingsUserKey": "pG6L5dj57PAuxaEUUgj9hA", "MAPPhotoUUID": "ff6e6658-ab5b-4fcf-aa4d-d433b4325a4e", "MAPDeviceModel": "GoPro Fusion FS1.04.02.00.00", "MAPCompassHeading": {"TrueHeading": 0.0, "MagneticHeading": 0.0}, "MAPMetaTags": {"strings": [{"key": "mapillary_tools_version", "value": "0.5.0"}, {"key": "mapillary_uploader_version", "value": "1.2.3"}]}, "MAPSettingsUsername": "trekviewhq", "MAPCaptureTime": "2019_10_13_17_47_13_000", "MAPLatitude": 51.24514444444444, "MAPSequenceUUID": "4e46f539-88ce-4bf2-8c58-9d6eec9e4024", "MAPLongitude": -0.8202777777777778}
-
 If a photo does not contain this information, you will be presented with a warning, and asked whether you wish continue (discard the photos missing this information from the process).
 
 This software will work with most image formats. Whilst it is designed for 360 photos, it will work with a sequence of traditional flat (Cartesian) images too.
@@ -75,7 +73,7 @@ _Note, if two or more of these arguments are used (frame_rate, distance_max, dis
 
 _A note on join modes: generally you should join by time unless you have a specific usecase. time will join the photo to the next photo using the photos `GPDateTime` value. Filename will join the photo to the next photo in ascending alphabetical order._
 
-![Sequence maker joins](/sequence-maker-diagram.png)
+![Sequence maker joins](/sequence-maker-diagram.jpg)
 
 ### Format
 
