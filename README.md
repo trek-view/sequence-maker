@@ -45,9 +45,7 @@ All images must be geotagged with the following values:
 * `GPSLatitude`
 * `GPSLongitude`
 * `GPSAltitude`
-* `GPTimeStamp`
-* `GPDateStamp`
-* `GPDateTime`
+- `GPSDateTime` OR (`GPSDateStamp` / `GPSTimeStamp`)
 
 If a photo does not contain this information, you will be presented with a warning, and asked whether you wish continue (discard the photos missing this information from the process).
 
