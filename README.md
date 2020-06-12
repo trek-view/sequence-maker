@@ -103,7 +103,7 @@ _Note, if two or more of these arguments are used (frame-rate, spatial-distance-
 ### Format
 
 ```
-python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d - e [PATH TO EXIFTOOL EXECUTABLE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
+python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d -e [PATH TO EXIFTOOL EXECUTABLE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
 ```
 
 ### Examples
