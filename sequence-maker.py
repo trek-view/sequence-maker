@@ -112,7 +112,7 @@ def parse_metadata(dfrow, keys, discard):
         except KeyError:
             print('\n\nAn image was encountered that did not have the required metadata.')
             print('Image: {0}'.format(dfrow['IMAGE_NAME']))
-            print('Missing metadata key: {0}\n\n'.format(key))
+            print('Missing metadata key: {0}\n\n'.format(key.split(':')[-1]))
             print('Consider using the "-d" option to discard images missing required metadata keys')
             input('Press any key to quit')
             quit()
