@@ -334,10 +334,11 @@ def make_sequence(args):
     for conn_type in ['DELTA_TIME', 'DISTANCE', 'DELTA_ALT']:
         df_images = calculate_to_next(df_images, conn_type)
     
-    #Calculate Azimuth (heading)
+    #Calculate Azimuth (heading) and Pitch
     print('Calculating heading between qualified images....')
     df_images['AZIMUTH']  = df_images.apply(lambda x: calculate_initial_compass_bearing((x['LATITUDE'], x['LONGITUDE']), (x['LATITUDE_NEXT'], x['LONGITUDE_NEXT'])),axis=1)
     df_images.iat[-1, df_images.columns.get_loc('AZIMUTH')]  = df_images['AZIMUTH'].iloc[-2]
+    df_images['PITCH']    = (df_images['ALTITUDE_NEXT'] - df_images['ALTITUDE']) / df_images['DISTANCE']
 
     #Add additional required data for output json.
     #All related to PREVIOUS image
@@ -345,12 +346,14 @@ def make_sequence(args):
     df_images['DISTANCE_TO_PREV']   = -1 * df_images['DISTANCE'].shift(1)
     df_images['DELTA_TIME_TO_PREV'] = -1 * df_images['DELTA_TIME'].shift(1)
     df_images['DELTA_ALT_TO_PREV']  = -1 * df_images['DELTA_ALT'].shift(1)
-    df_images['AZIMUTH_TO_PREV'] = (df_images['AZIMUTH'].shift(1) + 180) % 360
+    df_images['PITCH_TO_PREV']      = -1 * df_images['PITCH'].shift(1)
+    df_images['AZIMUTH_TO_PREV']    = (df_images['AZIMUTH'].shift(1) + 180) % 360
 
     df_images.iat[0, df_images.columns.get_loc('DELTA_ALT_TO_PREV')] = 0
     df_images.iat[0, df_images.columns.get_loc('DISTANCE_TO_PREV')] = 0
     df_images.iat[0, df_images.columns.get_loc('DELTA_TIME_TO_PREV')] = 0
     df_images.iat[0, df_images.columns.get_loc('AZIMUTH_TO_PREV')] = 0
+    df_images.iat[0, df_images.columns.get_loc('PITCH_TO_PREV')] = 0
     
     #Add names of the NEXT and PREVIOUS image for quicker reference
     df_images['IMAGE_NAME_NEXT'] = df_images['IMAGE_NAME'].shift(-1)
@@ -364,13 +367,18 @@ def make_sequence(args):
                              'distance_mtrs':k['DISTANCE'],
                              'elevation_mtrs':k['DELTA_ALT'],
                              'heading_deg':k['AZIMUTH'],
+                             'pitch':k['PITCH'],
                              'time_sec':k['DELTA_TIME']}, 
 
                          k['IMAGE_NAME_PREV']: {
                              'distance_mtrs':k['DISTANCE_TO_PREV'],
                              'elevation_mtrs':k['DELTA_ALT_TO_PREV'],
                              'heading_deg':k['AZIMUTH_TO_PREV'],
-                             'time_sec':k['DELTA_TIME_TO_PREV']}
+                             'pitch':k['PITCH_TO_PREV'],
+                             'time_sec':k['DELTA_TIME_TO_PREV']},
+
+                         'create_date':datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d:%H:%M:%S'),
+                         'software':'sequence-maker'
                          }
                     for index, k in df_images.iterrows()
                     }
