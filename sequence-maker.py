@@ -259,6 +259,8 @@ def make_sequence(args):
             input('Press any key to continue')
             quit()
 
+    print('The following input folder will be used:\n{0}'.format(INPUT_PHOTO_DIRECTORY))
+    print('The following output folder will be used:\n{0}'.format(OUTPUT_PHOTO_DIRECTORY))
 
     #Often the exiftool.exe will not be in Windows's PATH
     if args.executable_path == 'No path specified':
