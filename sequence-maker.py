@@ -181,7 +181,7 @@ def clean_up_new_files(OUTPUT_PHOTO_DIRECTORY, list_of_files):
         except PermissionError:
             print("Image {0} is still in use by Exiftool's process or being moved'. Waiting before moving it...".format(image_name))
             time.sleep(3)
-            os.rename(image, os.path.join(os.path.abspath(OUTPUT_PHOTO_DIRECTORY), image_name))
+            os.rename(image, os.path.join(os.path.abspath(OUTPUT_PHOTO_DIRECTORY), '{0}_calculated.{1}'.format(image_name.split('.')[0], image.split('.')[-1])))
             os.rename(os.path.join(os.path.abspath(image_head), '{0}_original'.format(image_name)), image)
 
     print('Output files saved to {0}'.format(os.path.abspath(OUTPUT_PHOTO_DIRECTORY)))
