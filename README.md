@@ -59,7 +59,7 @@ The following Python packages need to be installed:
 * [Pandas](https://pandas.pydata.org/docs/)
 	`python -m pip install pandas`
 	
-[PyExifTool](https://pypi.org/project/PyExifTool/) is used as a package as well. This package is provided within this repo with the exiftool.py content being the content of a specific commit to address Windows related issues.
+[PyExifTool](https://pypi.org/project/PyExifTool/) is used as a package as well. This package is provided as a custom package within this repo with the exiftool.py content being the content of a specific commit to address Windows related issues.
 
 
 [exiftool](https://exiftool.org/) needs to be installed on the system.
@@ -140,6 +140,7 @@ Sequence maker will generate new photo files with JSON objects with destination 
 			heading_deg:
 			time_sec: 
 	}
+	id: UUID
 	create_date: 2020-05-30:00:00:00
 	software: sequence-maker
 }

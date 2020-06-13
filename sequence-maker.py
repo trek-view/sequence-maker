@@ -16,6 +16,7 @@ import sys
 import argparse
 import ntpath
 import time
+import uuid
 
 import pandas as pd
 from exiftool_custom import exiftool
@@ -359,49 +360,59 @@ def make_sequence(args):
     df_images['IMAGE_NAME_NEXT'] = df_images['IMAGE_NAME'].shift(-1)
     df_images['IMAGE_NAME_PREV'] = df_images['IMAGE_NAME'].shift(1)
 
+    #Assign UUID
+    df_images['UUID'] = df_images.apply(lambda x: str(uuid.uuid1()), axis=1)
+    df_images['UUID_NEXT'] = df_images['UUID'].shift(-1)
+    df_images['UUID_PREV'] = df_images['UUID'].shift(1)
+
     #Create the global JSON structure
     #Main keys will be the image to which the subkeys will be added to
     print('\nGenerating JSON object...')
-    descriptions = {k['IMAGE_NAME']:{
-                        k['IMAGE_NAME_NEXT']: {
-                             'distance_mtrs':k['DISTANCE'],
-                             'elevation_mtrs':k['DELTA_ALT'],
-                             'heading_deg':k['AZIMUTH'],
-                             'pitch':k['PITCH'],
-                             'time_sec':k['DELTA_TIME']}, 
+    descriptions = {k['UUID']:{
+                        'connections': {
+                            k['UUID_NEXT']: {
+                                 'distance_mtrs':k['DISTANCE'],
+                                 'elevation_mtrs':k['DELTA_ALT'],
+                                 'heading_deg':k['AZIMUTH'],
+                                 'pitch':k['PITCH'],
+                                 'time_sec':k['DELTA_TIME']}, 
 
-                         k['IMAGE_NAME_PREV']: {
-                             'distance_mtrs':k['DISTANCE_TO_PREV'],
-                             'elevation_mtrs':k['DELTA_ALT_TO_PREV'],
-                             'heading_deg':k['AZIMUTH_TO_PREV'],
-                             'pitch':k['PITCH_TO_PREV'],
-                             'time_sec':k['DELTA_TIME_TO_PREV']},
+                            k['UUID_PREV']: {
+                                 'distance_mtrs':k['DISTANCE_TO_PREV'],
+                                 'elevation_mtrs':k['DELTA_ALT_TO_PREV'],
+                                 'heading_deg':k['AZIMUTH_TO_PREV'],
+                                 'pitch':k['PITCH_TO_PREV'],
+                                 'time_sec':k['DELTA_TIME_TO_PREV']}
+                            },
 
+                         'id':k['UUID'],
                          'create_date':datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d:%H:%M:%S'),
                          'software':'sequence-maker'
                          }
                     for index, k in df_images.iterrows()
                     }
 
+    img_id_link = {k['UUID']:k['IMAGE_NAME'] for index, k in df_images.iterrows()}
+
     #Remove the 'nan' links of the first image to its PREVIOUS, and
     #the NEXT image of the last image
     to_del = []
     for image in descriptions.keys():
-        for connection in descriptions[image].keys():
+        for connection in descriptions[image]['connections'].keys():
             if type(connection) == float:
                 to_del.append([image, connection])
 
     for z, y in to_del:
-        del descriptions[z][y] 
+        del descriptions[z]['connections'][y] 
 
 
     #For each image, write the JSON into EXIF::ImageDescription
     print('Writing metadata to EXIF::ImageDescription of qualified images...\n')
     with exiftool.ExifTool() as et:
-        for image in descriptions.keys():
-            et.execute(bytes('-ImageDescription={0}'.format(json.dumps(descriptions[image])), 'utf-8'), bytes("{0}".format(image), 'utf-8'))
+        for image_uuid in descriptions.keys():
+            et.execute(bytes('-ImageDescription={0}'.format(json.dumps(descriptions[image_uuid])), 'utf-8'), bytes("{0}".format(img_id_link[image_uuid]), 'utf-8'))
 
-    clean_up_new_files(OUTPUT_PHOTO_DIRECTORY, [key for key in descriptions.keys()])
+    clean_up_new_files(OUTPUT_PHOTO_DIRECTORY, [image for image in img_id_link.values()])
 
     input('\nMetadata successfully added to images.\n\nPress any key to quit')
     quit()
