@@ -184,6 +184,8 @@ def clean_up_new_files(OUTPUT_PHOTO_DIRECTORY, list_of_files):
             os.rename(image, os.path.join(os.path.abspath(OUTPUT_PHOTO_DIRECTORY), image_name))
             os.rename(os.path.join(os.path.abspath(image_head), '{0}_original'.format(image_name)), image)
 
+    print('Output files saved to {0}'.format(os.path.abspath(OUTPUT_PHOTO_DIRECTORY)))
+
 
 def handle_frame_rate(frame_rate):
     '''
@@ -243,8 +245,18 @@ def make_sequence(args):
     ALTITUDE_FITLERING    = True if MIN_ALTITUDE_INTERVAL > 0 else False
 
     PATH                   = Path(__file__)
-    INPUT_PHOTO_DIRECTORY  = args.input_directory
-    OUTPUT_PHOTO_DIRECTORY = args.output_directory
+    INPUT_PHOTO_DIRECTORY  = os.path.abspath(args.input_directory)
+    OUTPUT_PHOTO_DIRECTORY = os.path.abspath(args.output_directory)
+
+    if not os.path.isdir(os.path.abspath(INPUT_PHOTO_DIRECTORY)):
+        if os.path.isdir(os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY)):
+            INPUT_PHOTO_DIRECTORY = os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY)
+            OUTPUT_PHOTO_DIRECTORY = os.path.join(PATH.parent.resolve(), OUTPUT_PHOTO_DIRECTORY)
+        else:
+            input('No valid input folder is given!\nInput folder {0} or {1} does not exist!'.format(os.path.abspath(INPUT_PHOTO_DIRECTORY), \
+                os.path.abspath(os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY))))
+            input('Press any key to continue')
+            quit()
 
 
     #Often the exiftool.exe will not be in Windows's PATH
