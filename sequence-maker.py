@@ -18,7 +18,7 @@ import ntpath
 import time
 
 import pandas as pd
-import exiftool
+from exiftool_custom import exiftool
 
 
 def calculate_initial_compass_bearing(pointA, pointB):

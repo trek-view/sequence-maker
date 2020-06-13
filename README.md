@@ -56,10 +56,10 @@ This software will work with most image formats. Whilst it is designed for 360 p
 ### Installation
 
 The following Python packages need to be installed:
-* [PyExifTool](https://pypi.org/project/PyExifTool/)
-	`python -m pip install PyExifTool`
 * [Pandas](https://pandas.pydata.org/docs/)
 	`python -m pip install pandas`
+	
+[PyExifTool](https://pypi.org/project/PyExifTool/) is used as a package as well. This package is provided within this repo with the exiftool.py content being the content of a specific commit to address Windows related issues.
 
 
 [exiftool](https://exiftool.org/) needs to be installed on the system.
