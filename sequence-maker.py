@@ -251,7 +251,8 @@ def make_sequence(args):
     if not os.path.isdir(os.path.abspath(INPUT_PHOTO_DIRECTORY)):
         if os.path.isdir(os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY)):
             INPUT_PHOTO_DIRECTORY = os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY)
-            OUTPUT_PHOTO_DIRECTORY = os.path.join(PATH.parent.resolve(), OUTPUT_PHOTO_DIRECTORY)
+            if not os.path.isdir(os.path.abspath(OUTPUT_PHOTO_DIRECTORY)):
+                OUTPUT_PHOTO_DIRECTORY = os.path.join(PATH.parent.resolve(), OUTPUT_PHOTO_DIRECTORY)
         else:
             input('No valid input folder is given!\nInput folder {0} or {1} does not exist!'.format(os.path.abspath(INPUT_PHOTO_DIRECTORY), \
                 os.path.abspath(os.path.join(PATH.parent.resolve(), INPUT_PHOTO_DIRECTORY))))
