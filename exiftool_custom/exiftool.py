@@ -4,7 +4,7 @@
 # More contributors in the CHANGELOG for the pull requests
 
 # This file is part of PyExifTool.
-# This custom package is the code of to address a select.select issue on Windows
+# This custom package is the code of the commit below to address a select.select issue on Windows
 # https://github.com/sylikc/pyexiftool/blob/03a8595a2eafc61ac21deaa1cf5e109c6469b17c/exiftool.py
 #
 # PyExifTool is free software: you can redistribute it and/or modify
