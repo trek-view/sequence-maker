@@ -100,13 +100,22 @@ def filter_metadata(dict_metadata, key, discard):
         return dict_metadata[key]
 
     
-def parse_metadata(dict_metadata, keys, discard):
+def parse_metadata(dfrow, keys, discard):
     '''
     Main function using filter_metadata() to process each key in a metadata object
     '''
+    dict_metadata = dfrow['METADATA']
     values = []
     for key in keys:
-        values.append(filter_metadata(dict_metadata, key, discard))
+        try:
+            values.append(filter_metadata(dict_metadata, key, discard))
+        except KeyError:
+            print('\n\nAn image was encountered that did not have the required metadata.')
+            print('Image: {0}'.format(dfrow['IMAGE_NAME']))
+            print('Missing metadata key: {0}\n\n'.format(key))
+            print('Consider using the "-d" option to discard images missing required metadata keys')
+            input('Press any key to quit')
+            quit()
     return values
 
 
@@ -294,11 +303,20 @@ def make_sequence(args):
     print('Checking metadata tags of all images...')
     len_before_disc = len(df_images)
     keys = ['Composite:GPSDateTime', 'Composite:GPSLatitude', 'Composite:GPSLongitude', 'Composite:GPSAltitude']
-    df_images[['GPS_DATETIME', 'LATITUDE', 'LONGITUDE', 'ALTITUDE']] = df_images.apply(lambda x: parse_metadata(x['METADATA'], keys, DISCARD), axis=1, result_type='expand')
-    
+    df_images[['GPS_DATETIME', 'LATITUDE', 'LONGITUDE', 'ALTITUDE']] = df_images.apply(lambda x: parse_metadata(x, keys, DISCARD), axis=1, result_type='expand')
+
     #remove discarded images.
     df_images.dropna(axis=0, how='any', inplace=True)
     print('{0} images dropped. "DISCARD" is {1}.\n'.format(len_before_disc - len(df_images), DISCARD))
+
+    if len(df_images) == 0:
+        print('All images were discarded. No images left to process. Exiting program.')
+        input('Press any key to quit')
+        quit()
+    elif len(df_images) == 1:
+        print('Only one image to process. No possible links. Exiting program.')
+        input('Press any key to quit')
+        quit()
 
     #Convert datetime from string to datetime format
     df_images['GPS_DATETIME'] = df_images.apply( lambda x: datetime.datetime.strptime(x['GPS_DATETIME'],'%Y:%m:%d %H:%M:%SZ'),axis=1)
