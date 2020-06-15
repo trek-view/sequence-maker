@@ -307,6 +307,8 @@ def make_sequence(args):
 
     #remove discarded images.
     df_images.dropna(axis=0, how='any', inplace=True)
+    #Reset index in case an image is dropped due to DISCARD
+    df_images.reset_index(inplace = True, drop=True)
     print('{0} images dropped. "DISCARD" is {1}.\n'.format(len_before_disc - len(df_images), DISCARD))
 
     if len(df_images) == 0:
@@ -331,7 +333,7 @@ def make_sequence(args):
     print('Calculating differences of time, distance and altitude between images...')
     for conn_type in ['DELTA_TIME', 'DISTANCE', 'DELTA_ALT']:
         df_images = calculate_to_next(df_images, conn_type)
-    
+        
     #Filter images, drop rows where needed and 
     #re-calculate the distance and altitude differences if rows are dropped
     print('Filtering images according to input parameters...')
