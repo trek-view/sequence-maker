@@ -124,7 +124,7 @@ def generic_connection(df_images, connection_type, minimum):
     A function to calculate the difference and links of a certain difference type.
     Differences must be linear.
     '''
-    df_images['CUM_{0}'.format(connection_type)] = 0
+    df_images['CUM_{0}'.format(connection_type)] = float(0)
 
     for index, row in df_images.iterrows():
         if index == 0:
@@ -350,6 +350,16 @@ def make_sequence(args):
     len_final = len(df_images)
     print('{0} images discarded due to altitude spacing intervals\n'.format(len_alt - len_final))
 
+    print('\nFinal amount of images to process: {0}\n\n'.format(len(df_images)))
+    if len(df_images) == 0:
+        print('All images were filtered out. No images left to process. Exiting program.')
+        input('Press any key to quit')
+        quit()
+    elif len(df_images) == 1:
+        print('Only one image left to process. No possible links. Exiting program.')
+        input('Press any key to quit')
+        quit()
+
     #Finally, calculate all differences again to their NEXT image
     print('Calculating final differences of time, distance and altitude between qualified images...')
     for conn_type in ['DELTA_TIME', 'DISTANCE', 'DELTA_ALT']:
@@ -491,3 +501,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     make_sequence(args)
+
+
+#args.__dict__ = {'frame_rate':'1000000', 'alt_diff_min':'100', 'spatial_distance_min': '0.5', 'join_mode':'filename', 'discard':True, 'executable_path': r"D:\Jasper\Py\automate.IT\trek-view\Trek-View\exiftool.exe", 'input_directory':r"D:\Jasper\Py\automate.IT\TEMP\TIMELAPSE\TIMELAPSE", 'output_directory': r"D:\Jasper\Py\automate.IT\TEMP\Output_s1"}
+#__file__ = r'D:\Jasper\Py\automate.IT\trek-view\Trek-View\Sequence-Maker\sequence-maker.py'
+#sys.path.append(r'D:\Jasper\Py\automate.IT\trek-view\Trek-View\Sequence-Maker\\')
