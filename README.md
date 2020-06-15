@@ -53,39 +53,71 @@ This software will work with most image formats. Whilst it is designed for 360 p
 
 ## Quick start guide
 
+### Installation
+
+The following Python packages need to be installed:
+* [Pandas](https://pandas.pydata.org/docs/)
+	`python -m pip install pandas`
+	
+[PyExifTool](https://pypi.org/project/PyExifTool/) is used as a package as well. This package is provided as a custom package within this repo with the exiftool.py content being the content of a specific commit to address Windows related issues.
+
+
+[exiftool](https://exiftool.org/) needs to be installed on the system.
+If used on Windows, download the stand-alone .exe executable. Rename the .exe file to `exiftool.exe`. Put the .exe file in the same folder as the `azipi.py` file
+
+The `.ExifTool_Config` ([.ExifTool_Config explanation](https://exiftool.org/faq.html#Q11)) needs be in the HOME directory (Mac, Linux) or in the same folder as the `azipi.py`file (Windows)
+
 ### Arguments
 
-* frame_rate: maximum frames per second (value between 0.05 and 5)
+* -f: frame-rate: maximum frames per second (value between 0.05 and 5)
 
-_A note on frame_rate spacing:  designed to discard photos when unnecessary high frame rate. the script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
+_A note on frame-rate spacing:  designed to discard photos when unnecessary high frame rate. the script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
 
-* horizontal_distance_min: minimum spacing between photos in meters (between 0.5 and 20) e.g. photos cannot be closer than this value.
+* -s: spatial-distance-min: minimum spacing between photos in meters (between 0.5 and 20) e.g. photos cannot be closer than this value.
 
-_A note on distance_min spacing: designed to discard photos when lots taken in same place. if the value you define is less than the distance between two photo values, the script will still make a connection (e.g min_spacing = 10m and actual disantce = 20m, photos will still be joined. The script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
+_A note on spatial-distance-min: designed to discard photos when lots taken in same place. if the value you define is less than the distance between two photo values, the script will still make a connection (e.g min_spacing = 10m and actual disantce = 20m, photos will still be joined. The script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
 
-_Note, if two or more of these arguments are used (frame_rate, distance_max, distance_min, or vertical_distance_max arguments), the script will process in the order: 1) frame_rate, 2) distance_max, 3) distance_min, and 4) vertical_distance_max._
+* -a: altitude-difference-min: minimum altitude difference between photos in meters.
 
-* join mode:
+
+_Note, if two or more of these arguments are used (frame-rate, spatial-distance-min, or altitude-difference-min arguments), the script will process in the order: 1) frame-rate, 2) spatial-distance-min, and 3) altitude-difference-min._
+
+* -j: join mode:
 	- time (ascending e.g. 00:01 - 00:10); OR
 	- filename (ascending e.g A.jpg > Z.jpg)
 
-_A note on join modes: generally you should join by time unless you have a specific usecase. time will join the photo to the next photo using the photos `GPDateTime` value. Filename will join the photo to the next photo in ascending alphabetical order._
+	_A note on join modes: generally you should join by time unless you have a specific usecase. time will join the photo to the next photo using the photos `GPDateTime` value. Filename will join the photo to the next photo in ascending alphabetical order._
+
+* -d: discard: discard images that lack GPS or time tags and continue
+
+* e: exiftool-exec-path
+	- path to ExifTool executable (recommended on Windows if [exiftool.exe](https://exiftool.org/) is not in working directory)
+
+* input_directory: directory that contains a series of images
+
+* output_directory: directory to store the newly tagged images
+
 
 ![Sequence maker joins](/sequence-maker-diagram.jpg)
 
 ### Format
 
 ```
-python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
+python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d -e [PATH TO EXIFTOOL EXECUTABLE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
 ```
 
 ### Examples
 
 **Connect photos with a minimum interval of 1 seconds and minimum distance between photos of 3 meters in ascending time order (recommended)**
 
+Mac, Linux:
 ```
-python sequence-maker.py -frame_rate 1 horizontal_distance_min 3 -time my_input_photos/ my_output_photos/
+python sequence-maker.py -f 1 -s 3 -j time -d time my_input_photos/ my_output_photos/
 ````
+Windows:
+```
+"C:\Program Files (x86)\Python37\python.exe" "C:\PATH TO Python file\sequence-maker.py" -f 1 -s 3 -j time -d -e "C:\PATH TO exiftool\exiftool.exe" "C:\PATH TO INPUT FOLDER\" "C:\PATH TO OUTPUT FOLDER\"
+```
 
 **Connect photos within 10m of each other in ascending time order (recommended)**
 
@@ -108,11 +140,16 @@ Sequence maker will generate new photo files with JSON objects with destination 
 			heading_deg:
 			time_sec: 
 	}
+	id: UUID
 	create_date: 2020-05-30:00:00:00
 	software: sequence-maker
 }
 
 ```
+You will get a new photo file with appended meta data.
+
+The new files will follow the naming convention: `[ORIGINAL FILENAME] _ calculated . [ORIGINAL FILE EXTENSION]`
+
 
 You can view the the value of tags assigned:
 
