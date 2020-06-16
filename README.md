@@ -20,23 +20,100 @@ To ensure the correct connections are made between photos we use Sequence Maker 
 
 ## How it works
 
-1. You define the timelapse series of photos, desired photo spacing (by distance or capture time), and how they should be connected
+### Overview
+
+1. You define the timelapse series of photos, desired photo spacing (by distance or time), and how they should be connected
 2. IF distance selected, the script calculates the distance between photos
-3. The script orders the photos in specified order (either capture time or distance)
+3. The script orders the photos in specified order (time or distance)
 4. The script discards images that don't match the specified spacing condition
-5. The script calculates the distance, elevation change, time difference, and heading between remaining photos
-6. The script writes a JSON object into the remaining photos `-xmp:Notes` tag with this information
+5. The script assigns each photo a UUID 
+6. The script calculates the distance, elevation change, time difference, and heading between remaining photos
+7. The script uses exiftool to write a JSON object into the remaining photos `-exif:ImageDescription` tag with this information
  
+### The details
+
+![Sequence maker joins](/sequence-maker-diagram.jpg)
+
+For geotagged photos taken in a timelapse, it is possible to provide a fairly accurate estimate of the azimuth and pitch (see: limitations) because timelapses are typically shot in ascending time order (00:00:00 > 00:00:05 > 00:00:10) at set intervals (e.g. one photo every 5 seconds). 
+
+* elevation change (`elevation_mtrs`): reported as `GPSAltitude`, can be calculated as "destination photo altitude - source photo altitude"
+* distance (`distance_mtrs`): using position of two photos (`GPSLatitude` to `GPSLongitude`) can calculate distance using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
+* time difference (`time_sec`): using either `GPSDateTime` or `originalDateTime`, can be calculated as  as "destination photo time - source photo time"
+* speed (`speed_kmh`): using `distance_mtrs` and `time_sec` it is possible to calculate speed between two photos (speed = `distance_mtrs` / `time_sec`)
+* azimuth (`heading_deg`) (estimate): calculated using the vertical angle between the `GPSAltitude` value of source and destination photo.
+* pitch (`pitch_deg`) (estimate): calculated using the horizontal angle between the source photo (`GPSLatitude`/`GPSLongitude`) and the destination photo (`GPSLatitude`/`GPSLongitude`).
+
+```
+{
+	"id": UUID # id of this photo
+	"create_date": 2020-05-30:00:00:00 # either GPSDateTime or originalDateTime depending on mode selected
+	"software": sequence-maker # fixed
+	"connections": {
+		"[CONNECTION_1_PHOTO_UUID]": {
+			"distance_mtrs": # reported in meters,
+			"elevation_mtrs": # reported in meters,
+			"time_sec": # reported in seconds (can be negative, if source photo taken after destination photo),
+			"speed_kmh": # reported in kilometers per hour,
+			"heading_deg": # reported in degrees between 0 and 359.99 degrees,
+			"pitch_deg": # reported in degrees between -90 to 90 degrees
+
+		},
+		[51993d0d-af02-11ea-922c-cd0ce84081fa]: {
+			"distance_mtrs": 12.666786535950974,
+			"elevation_mtrs": 0.43100000000004,
+			"time_sec": 10,
+			"speed_kmh": 6.666786535950974,
+			"heading_deg": 178.76974201469432,
+			"pitch_deg": 0.03402599378909342
+	}
+
+} 
+```
+
+### Limitations / Considerations
+
+**Estimations**
+
+Photos in our (Trek View) tours are generally less than 3m apart and our Trek Pack cameras are always facing forward / backwards in the same direction (in a fixed position). Azimuth / Pitch Calculator therefore makes the assumption that the camera is facing in the direction of the next photo (as defined in CLI arguments).
+
+Note, this will not always be correct, for example, if camera turns 90 degrees between start and destination photo (e.g turning a corner). In such cases, using this software could result in photos facing the wrong direction and causing visual issues (e.g. facing a brick wall if turning 90 degrees around a city block). However, for our outdoor work this is rarely a problem and is considered acceptable.
+
+If you're shooting at a low frame rate, sharply changing direction, or holding your camera at different angles (e.g holding in your hand), this script will not be a good fit for you.
+
+**Discarded images**
+
+This script allows you to discard images that don't match a certain criteria (for example, you want to space them a minimum of 10 meters apart) and will lead to a larger level of inaccuracy for estimations.
+
+In cases where more images are discarded the source and destination photo used for calculations might therefore be very far apart, and thus less likely for the source photo to be facing the destination photo.
+
+**Final photo**
+
+The last photo in the timelapse (sequence) has no subsequent photo. Therefore, as a simple solution the last photo simply inherits the values of the previous photo in the sequence.
+
+This 'best-guess' will not be suitable when precise accuracy is needed.
+
+**Missing GPS**
+
+This script assumes all images are correctly geotagged with GPS information.
+
+If an image is not geotagged for some reason, you can still use the script but it will lead to a larger level of inaccuracy for estimations. This is because images with no GPS information are discarded. In cases where there has been loss of GPS information for a long period of time, the source and destination photo used for calculations might therefore be very far apart, and thus less likely for the source photo to be facing the destination photo.
+
 ## Requirements
 
 ### OS Requirements
 
 Works on Windows, Linux and MacOS.
 
-### Software Requirements
+### Software Requirements / Installation
+
+The following software / Python packages need to be installed:
 
 * Python version 3.6+
-* [exiftool](https://exiftool.org/)
+* [Pandas](https://pandas.pydata.org/docs/): `python -m pip install pandas`
+* [PyExifTool](https://pypi.org/project/PyExifTool/): is used as a package as well. This package is provided within this repo with the `exiftool.py` content being the content of a specific commit to address Windows related issues.
+* [exiftool](https://exiftool.org/) needs to be installed on the system. If used on Windows, download the stand-alone .exe executable. Rename the .exe file to `exiftool.exe`. Put the .exe file in the same folder as the `azipi.py` file
+
+The `.ExifTool_Config` ([.ExifTool_Config explanation](https://exiftool.org/faq.html#Q11)) needs be in the HOME directory (Mac, Linux) or in the same folder as the `azipi.py`file (Windows)
 
 ### Image Requirements
 
@@ -45,7 +122,7 @@ All images must be geotagged with the following values:
 * `GPSLatitude`
 * `GPSLongitude`
 * `GPSAltitude`
-- `GPSDateTime` OR (`GPSDateStamp` / `GPSTimeStamp`)
+* `GPSDateTime` OR (`GPSDateStamp` AND `GPSTimeStamp`) OR `originalDateTime`
 
 If a photo does not contain this information, you will be presented with a warning, and asked whether you wish continue (discard the photos missing this information from the process).
 
@@ -53,52 +130,36 @@ This software will work with most image formats. Whilst it is designed for 360 p
 
 ## Quick start guide
 
-### Installation
+### Command Line Arguments
 
-The following Python packages need to be installed:
-* [Pandas](https://pandas.pydata.org/docs/)
-	`python -m pip install pandas`
-	
-[PyExifTool](https://pypi.org/project/PyExifTool/) is used as a package as well. This package is provided as a custom package within this repo with the exiftool.py content being the content of a specific commit to address Windows related issues.
+* -f: frame rate (optional: default is keep all images). Maximum frames per second. Enter value between 0.05 and 5 (frames per second).
 
+_A note on frame rate spacing. `-f` is designed to discard photos when unnecessary high frame rate of images exists. The script will start on first photo in the specified order and count to the nearest photo using the frame rate value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the frame rate value specified, and so on._
 
-[exiftool](https://exiftool.org/) needs to be installed on the system.
-If used on Windows, download the stand-alone .exe executable. Rename the .exe file to `exiftool.exe`. Put the .exe file in the same folder as the `azipi.py` file
+* -s: spatial distance minimum in meters (optional: default is keep all images). The minimum spacing between photos in meters. Put another way, photos cannot be closer than this value. Enter value between 0.5 and 20 (meters).
 
-The `.ExifTool_Config` ([.ExifTool_Config explanation](https://exiftool.org/faq.html#Q11)) needs be in the HOME directory (Mac, Linux) or in the same folder as the `azipi.py`file (Windows)
+_A note on spatial distance minimum. `-s` is designed to discard photos when lots taken in same place. The script will start on first photo and count to the nearest photo using the distance value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value distance specified, and do on._
 
-### Arguments
+* -a: altitude difference minimum in meters (optional: default is keep all images). The minimum altitude difference between photos in meters. Enter value between 0.5 and 20 (meters).
 
-* -f: frame-rate: maximum frames per second (value between 0.05 and 5)
+_A note on spatial distance minimum. `-a`. is really designed for skydiving to discard photos when lots taken in same vertical space. Works in same way as `-s` but for vertical distance between photos._
 
-_A note on frame-rate spacing:  designed to discard photos when unnecessary high frame rate. the script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
+**Using `-f`, `-s` and `-a` together**
 
-* -s: spatial-distance-min: minimum spacing between photos in meters (between 0.5 and 20) e.g. photos cannot be closer than this value.
+If two or more of these arguments are used (`-f`, `-s` or `-a`) the script will process in the order: 1) frame rate `-f`, 2) spatial distance minimum `-s`, and 3) altitude difference minimum `-a`.
 
-_A note on spatial-distance-min: designed to discard photos when lots taken in same place. if the value you define is less than the distance between two photo values, the script will still make a connection (e.g min_spacing = 10m and actual disantce = 20m, photos will still be joined. The script will start on first photo and count to the nearest photo by value specified. All photos in between will be discarded. The script will then start from 0 and count to the next photo using the value specified. All photos in between will be discarded._
-
-* -a: altitude-difference-min: minimum altitude difference between photos in meters.
-
-
-_Note, if two or more of these arguments are used (frame-rate, spatial-distance-min, or altitude-difference-min arguments), the script will process in the order: 1) frame-rate, 2) spatial-distance-min, and 3) altitude-difference-min._
-
-* -j: join mode:
-	- time (ascending e.g. 00:01 - 00:10); OR
+* -j: join mode (optional: default is timegps):
+	- timegps (`GPSDateTime` of image, ascending e.g. 00:01 - 00:10); OR
+	- timecapture (`CaptureTime` of image, ascending e.g. 00:01 - 00:10)
 	- filename (ascending e.g A.jpg > Z.jpg)
 
-	_A note on join modes: generally you should join by time unless you have a specific usecase. time will join the photo to the next photo using the photos `GPDateTime` value. Filename will join the photo to the next photo in ascending alphabetical order._
+_A note on join modes. Generally you should join by time unless you have a specific use-case. Filename will join the photo to the next photo in ascending alphabetical order. We recommend using `timegps` ([EXIF] `GPSDateTime`) not `timecapture` ([EXIF] `originalDateTime`) unless you are absolutely sure `originalDateTime` is correct. Many 360 stitching tools rewrite `originalDateTime` as datetime of stitching process not the datetime the image was actually captured. This can cause issues when sorting by time (e.g. images might not be stitched in capture order). Therefore, `GPSDateTime` is more likely to represent the true time of capture._
 
-* -d: discard: discard images that lack GPS or time tags and continue
-
-* e: exiftool-exec-path
+* d: discard: discard images that lack GPS or time tags and continue (required: if no GPS data in image)
+* e: exiftool-exec-path (optional)
 	- path to ExifTool executable (recommended on Windows if [exiftool.exe](https://exiftool.org/) is not in working directory)
-
 * input_directory: directory that contains a series of images
-
 * output_directory: directory to store the newly tagged images
-
-
-![Sequence maker joins](/sequence-maker-diagram.jpg)
 
 ### Format
 
@@ -108,53 +169,81 @@ python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d -e [PATH TO 
 
 ### Examples
 
-**Connect photos with a minimum interval of 1 seconds and minimum distance between photos of 3 meters in ascending time order (recommended)**
+**Connect photos with a minimum interval of 1 seconds and minimum distance between photos of 3 meters in ascending time order discarding images that lack gps (recommended)**
 
-Mac, Linux:
+_Mac/Linux_
+
 ```
-python sequence-maker.py -f 1 -s 3 -j time -d time my_input_photos/ my_output_photos/
+python sequence-maker.py -f 1 -s 3 -j timegps -d INPUT_DIRECTORY OUTPUT_DIRECTORY
 ````
-Windows:
-```
-"C:\Program Files (x86)\Python37\python.exe" "C:\PATH TO Python file\sequence-maker.py" -f 1 -s 3 -j time -d -e "C:\PATH TO exiftool\exiftool.exe" "C:\PATH TO INPUT FOLDER\" "C:\PATH TO OUTPUT FOLDER\"
-```
 
-**Connect photos within 10m of each other in ascending time order (recommended)**
+_Windows_
+
+```
+python sequence-maker.py -f 1 -s 3 -j timegps -d "INPUT_DIRECTORY" "OUTPUT_DIRECTORY"
+```
 
 ### Output
 
-Sequence maker will generate new photo files with JSON objects with destination connections printed under the [EXIF] `ImageDescription` tag:
+If successful an output similar to that shown below will be shown:
 
 ```
-{
-	connections: {
-		[FILENAME_1]: {
-			distance_mtrs: # horizontal distance (haversine) to destination file
-			elevation_mtrs: # vertical distance to destination file
-			heading_deg: # between 0 and 360
-			time_sec: # time in seconds before destination file captured (can be negative, if source photo taken after destination photo -- for example, when moving backwards)
-		},
-		[FILENAME_n]: {
-			distance_mtrs:
-			elevation_mtrs:
-			heading_deg:
-			time_sec: 
-	}
-	id: UUID
-	create_date: 2020-05-30:00:00:00
-	software: sequence-maker
-}
+8 file(s) have been found in input directory
+Fetching metadata from all images....
+
+Checking metadata tags of all images...
+1 images dropped. "DISCARD" is True.
+
+Calculating differences of time, distance and altitude between images...
+Filtering images according to input parameters...
+0 images discarded due to time spacing intervals
+0 images discarded due to distance spacing intervals
+0 images discarded due to altitude spacing intervals
+
+
+Final amount of images to process: 7
+
+
+Calculating final differences of time, distance and altitude between qualified images...
+Calculating heading between qualified images....
+Setting related data of connected qualified images...
+
+Generating JSON object...
+Writing metadata to EXIF::ImageDescription of qualified images...
+
+Cleaning up old and new files...
+Output files saved to C:\Users\david\azimuth-pitch-calculator-master\OUTPUT
+
+Metadata successfully added to images.
 
 ```
-You will get a new photo file with appended meta data.
+
+You will get a new photo file with appended metadata.
 
 The new files will follow the naming convention: `[ORIGINAL FILENAME] _ calculated . [ORIGINAL FILE EXTENSION]`
 
+For example, `INPUT/MULTISHOT_9698_000000.jpg` >> `OUTPUT/MULTISHOT_9698_000000_calculated.jpg`
 
-You can view the the value of tags assigned:
+## FAQ
+
+**How can I check the metadata in the image?**
+
+You can use exiftool (which will already be installed) to check the metadata.
+
+This skeleton command will output all the metadata in the specified image:
 
 ```
-exiftool -G -a  exiftool PHOTO_FILE > PHOTO_FILE_metadata.txt
+exiftool -G -s -b -j -a -T [PATH OF IMAGE TO CHECK] > OUTPUT.json
+```
+
+It will give a complete JSON document. Here's a snippet of the output:
+
+```
+  "EXIF:ImageDescription": {
+    "id": 270,
+    "table": "Exif::Main",
+    "val": ""id\": \"51993d0c-af02-11ea-a62e-cd0ce84081fa\", \"create_date\": \"2020-06-15:13:18:28\", \"software\": \"sequence-maker\", {\"connections\": {\"51993d0d-af02-11ea-922c-cd0ce84081fa\": {\"distance_mtrs\": 12.666786535950974, \"elevation_mtrs\": 0.43100000000004, \"heading_deg\": 178.76974201469432, \"pitch_deg\": 0.03402599378909342, \"time_sec\": 10, \"speed_kmh\": 6.666786535950974,}}"
+  },
 ```
 
 ## Support 
