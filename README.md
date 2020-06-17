@@ -47,9 +47,24 @@ For geotagged photos taken in a timelapse, it is possible to provide a fairly ac
 
 ```
 {
-	"id": UUID # id of this photo
-	"create_date": 2020-05-30:00:00:00 # either GPSDateTime or originalDateTime depending on mode selected
-	"software": sequence-maker # fixed
+	"id": # generated UUID of this photo,
+	"original_GPSDateTime": # GPSDateTime value or originalDateTime depending on mode selected,
+	"original_originalDateTime": # originalDateTime value,
+	"cli_connection_method": # GPSDateTime, originalDateTime, or filename depending on connection mode selected,
+	"cli_frame_rate_set": # value set for -f,
+	"cli_altitude_min_set": # value set for -a,
+	"cli_distance_min_set": # value set for -s,
+	"original_filename": # filename of photo before modifications,
+	"original_altitude": # GPSAltitude value,
+	"original_latitude": # GPSLatitude value,
+	"original_longitude": # GPSLongitude value,
+	"orignal_gps_direction_ref": # GPSImgDirectionRef value, else "",
+	"orignal_gps_speed": # GPSSpeed value, else "",
+	"original_heading": # XMP PoseHeadingDegrees` else EXIF `GPSImgDirection`, else "",
+	"original_pitch": # XMP PosePitchDegrees else EXIF GPSPitch, else "",
+	"original_camera_make": Make value,
+	"original_camera_model": Model value,
+	"software_version": 1.0 # shows version of sequence maker used from version txt
 	"connections": {
 		"[CONNECTION_1_PHOTO_UUID]": {
 			"distance_mtrs": # reported in meters,
