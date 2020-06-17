@@ -404,14 +404,14 @@ def make_sequence(args):
                                  'distance_mtrs':k['DISTANCE'],
                                  'elevation_mtrs':k['DELTA_ALT'],
                                  'heading_deg':k['AZIMUTH'],
-                                 'pitch':k['PITCH'],
+                                 'pitch_deg':k['PITCH'],
                                  'time_sec':k['DELTA_TIME']}, 
 
                             k['UUID_PREV']: {
                                  'distance_mtrs':k['DISTANCE_TO_PREV'],
                                  'elevation_mtrs':k['DELTA_ALT_TO_PREV'],
                                  'heading_deg':k['AZIMUTH_TO_PREV'],
-                                 'pitch':k['PITCH_TO_PREV'],
+                                 'pitch_deg':k['PITCH_TO_PREV'],
                                  'time_sec':k['DELTA_TIME_TO_PREV']}
                             },
 
