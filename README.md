@@ -32,7 +32,7 @@ To ensure the correct connections are made between photos we use Sequence Maker 
  
 ### The details
 
-![Sequence maker joins](/sequence-maker-diagram.jpg)
+![Sequence maker joins](/readme-images/sequence-maker-diagram.jpg)
 
 For geotagged photos taken in a timelapse, it is possible to provide a fairly accurate estimate of the azimuth and pitch (see: limitations) because timelapses are typically shot in ascending time order (00:00:00 > 00:00:05 > 00:00:10) at set intervals (e.g. one photo every 5 seconds). 
 
@@ -41,8 +41,6 @@ For geotagged photos taken in a timelapse, it is possible to provide a fairly ac
 * time difference (`time_sec`): using either `GPSDateTime` or `originalDateTime`, can be calculated as  as "destination photo time - source photo time"
 * speed (`speed_kmh`): using `distance_mtrs` and `time_sec` it is possible to calculate speed between two photos (speed = `distance_mtrs` / `time_sec`)
 * azimuth (`heading_deg`) (estimate): calculated using the vertical angle between the `GPSAltitude` value of source and destination photo.
-* azimuth adjusted (`adj_heading_deg`) (estimate):
-
 * pitch (`pitch_deg`) (estimate): calculated using the horizontal angle between the source photo (`GPSLatitude`/`GPSLongitude`) and the destination photo (`GPSLatitude`/`GPSLongitude`).
 
 ```
@@ -62,17 +60,17 @@ For geotagged photos taken in a timelapse, it is possible to provide a fairly ac
 	"orignal_gps_speed": # GPSSpeed value, else "",
 	"original_heading": # XMP PoseHeadingDegrees` else EXIF `GPSImgDirection`, else "",
 	"original_pitch": # XMP PosePitchDegrees else EXIF GPSPitch, else "",
+	"original_roll": # XMP PosePoseRollDegrees else EXIF GPSRoll, else "",
 	"original_camera_make": Make value,
 	"original_camera_model": Model value,
 	"software_version": 1.0 # shows version of sequence maker used from version txt
 	"connections": {
 		"[CONNECTION_1_PHOTO_UUID]": {
-			"distance_mtrs": # reported in meters,
+			"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),
 			"elevation_mtrs": # reported in meters,
 			"time_sec": # reported in seconds (can be negative, if source photo taken after destination photo),
-			"speed_kmh": # reported in kilometers per hour,
+			"speed_kmh": # reported in kilometers per hour (can be negative, if source photo taken after destination photo),
 			"heading_deg": # reported in degrees between 0 and 359.99 degrees,
-			"adj_heading_deg": # reported in degrees between 0 and 359.99 degrees,
 			"pitch_deg": # reported in degrees between -90 to 90 degrees
 
 		},
@@ -82,7 +80,6 @@ For geotagged photos taken in a timelapse, it is possible to provide a fairly ac
 			"time_sec": 10,
 			"speed_kmh": 6.666786535950974,
 			"heading_deg": 178.76974201469432,
-			"adj_heading_deg": 34.76974201469432,
 			"pitch_deg": 0.03402599378909342
 	}
 
@@ -261,7 +258,7 @@ It will give a complete JSON document. Here's a snippet of the output:
   "EXIF:ImageDescription": {
     "id": 270,
     "table": "Exif::Main",
-    "val": ""id\": \"51993d0c-af02-11ea-a62e-cd0ce84081fa\", \"create_date\": \"2020-06-15:13:18:28\", \"software\": \"sequence-maker\", {\"connections\": {\"51993d0d-af02-11ea-922c-cd0ce84081fa\": {\"distance_mtrs\": 12.666786535950974, \"elevation_mtrs\": 0.43100000000004, \"heading_deg\": 178.76974201469432, \"adj_heading_deg\": 34.76974201469432, \"pitch_deg\": 0.03402599378909342, \"time_sec\": 10, \"speed_kmh\": 6.666786535950974,}}"
+    "val": ""id\": \"51993d0c-af02-11ea-a62e-cd0ce84081fa\", \"create_date\": \"2020-06-15:13:18:28\", \"software\": \"sequence-maker\", {\"connections\": {\"51993d0d-af02-11ea-922c-cd0ce84081fa\": {\"distance_mtrs\": 12.666786535950974, \"elevation_mtrs\": 0.43100000000004, \"heading_deg\": 178.76974201469432, \"pitch_deg\": 0.03402599378909342, \"time_sec\": 10, \"speed_kmh\": 6.666786535950974,}}"
   },
 ```
 
