@@ -32,59 +32,83 @@ To ensure the correct connections are made between photos we use Sequence Maker 
  
 ### The details
 
+A sequence is a series of images (e.g. a series of 360 images on a hiking route). A sequence is defined by the images supplied by user to the script (directory).
+
+The order of joins (what photo is connected to the next) is defined by the user at script runtime (either timegps, timecapture, or filename).
+
 ![Sequence maker joins](/readme-images/sequence-maker-diagram.jpg)
 
 For geotagged photos taken in a timelapse, it is possible to provide a fairly accurate estimate of the azimuth and pitch (see: limitations) because timelapses are typically shot in ascending time order (00:00:00 > 00:00:05 > 00:00:10) at set intervals (e.g. one photo every 5 seconds). 
 
-* elevation change (`elevation_mtrs`): reported as `GPSAltitude`, can be calculated as "destination photo altitude - source photo altitude"
-* distance (`distance_mtrs`): using position of two photos (`GPSLatitude` to `GPSLongitude`) can calculate distance using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
-* time difference (`time_sec`): using either `GPSDateTime` or `originalDateTime`, can be calculated as  as "destination photo time - source photo time"
-* speed (`speed_kmh`): using `distance_mtrs` and `time_sec` it is possible to calculate speed between two photos (speed = `distance_mtrs` / `time_sec`)
-* azimuth (`heading_deg`) (estimate): calculated using the vertical angle between the `GPSAltitude` value of source and destination photo.
-* pitch (`pitch_deg`) (estimate): calculated using the horizontal angle between the source photo (`GPSLatitude`/`GPSLongitude`) and the destination photo (`GPSLatitude`/`GPSLongitude`).
+* elevation change to destination (`elevation_mtrs`): reported as `GPSAltitude`, can be calculated as "destination photo altitude - source photo altitude"
+* distance to destintion (`distance_mtrs`): using position of two photos (`GPSLatitude` to `GPSLongitude`) can calculate distance using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
+* time difference to destination (`time_sec`): using either `GPSDateTime` or `originalDateTime`, can be calculated as  as "destination photo time - source photo time"
+* speed to destination (`speed_kmh`): using `distance_mtrs` and `time_sec` it is possible to calculate speed between two photos (speed = `distance_mtrs` / `time_sec`)
+* azimuth to destination (`heading_deg`) (estimate): calculated using the vertical angle between the `GPSAltitude` value of source and destination photo.
+* pitch to destination (`pitch_deg`) (estimate): calculated using the horizontal angle between the source photo (`GPSLatitude`/`GPSLongitude`) and the destination photo (`GPSLatitude`/`GPSLongitude`).
+
+Once all these have been calculated, it is possible to calculate the following values for sequence level information.
+
+* sequence distance_km
+* sequence earliest_time
+* sequence latest_time
+* sequence duration_sec 
+* sequence average_speed
+
+The output calculations allow us to write the following JSON object information into the ImageDescription field.
 
 ```
 {
-	"id": # generated UUID of this photo,
-	"original_GPSDateTime": # GPSDateTime value or originalDateTime depending on mode selected,
-	"original_originalDateTime": # originalDateTime value,
-	"cli_connection_method": # GPSDateTime, originalDateTime, or filename depending on connection mode selected,
-	"cli_frame_rate_set": # value set for -f,
-	"cli_altitude_min_set": # value set for -a,
-	"cli_distance_min_set": # value set for -s,
-	"original_filename": # filename of photo before modifications,
-	"original_altitude": # GPSAltitude value,
-	"original_latitude": # GPSLatitude value,
-	"original_longitude": # GPSLongitude value,
-	"orignal_gps_direction_ref": # GPSImgDirectionRef value, else "",
-	"orignal_gps_speed": # GPSSpeed value, else "",
-	"original_heading": # XMP PoseHeadingDegrees` else EXIF `GPSImgDirection`, else "",
-	"original_pitch": # XMP PosePitchDegrees else EXIF GPSPitch, else "",
-	"original_roll": # XMP PosePoseRollDegrees else EXIF GPSRoll, else "",
-	"original_camera_make": Make value,
-	"original_camera_model": Model value,
-	"software_version": 1.0 # shows version of sequence maker used from version txt
-	"connections": {
-		"[CONNECTION_1_PHOTO_UUID]": {
-			"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),
-			"elevation_mtrs": # reported in meters,
-			"time_sec": # reported in seconds (can be negative, if source photo taken after destination photo),
-			"speed_kmh": # reported in kilometers per hour (can be negative, if source photo taken after destination photo),
-			"heading_deg": # reported in degrees between 0 and 359.99 degrees,
-			"pitch_deg": # reported in degrees between -90 to 90 degrees
-
-		},
-		[51993d0d-af02-11ea-922c-cd0ce84081fa]: {
-			"distance_mtrs": 12.666786535950974,
-			"elevation_mtrs": 0.43100000000004,
-			"time_sec": 10,
-			"speed_kmh": 6.666786535950974,
-			"heading_deg": 178.76974201469432,
-			"pitch_deg": 0.03402599378909342
+	"sequence" : {
+		"id": # UUID of sequence,
+		"distance_km": # total distance using all positive distance_mtrs connection values
+		"earliest_time": # earliest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
+		"latest_time": # latest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
+		"duration_sec: # sequence_latest_time - sequence_earliest_time,
+		"average_speed": # sequence_distance_km / sequence_duration_sec
 	}
+	"photo" : {
+		"id": # generated UUID of this photo,
+		"original_GPSDateTime": # GPSDateTime value,
+		"original_originalDateTime": # originalDateTime value,
+		"cli_connection_method": # GPSDateTime, originalDateTime, or filename depending on connection mode selected,
+		"cli_frame_rate_set": # value set for -f,
+		"cli_altitude_min_set": # value set for -a,
+		"cli_distance_min_set": # value set for -s,
+		"original_filename": # filename of photo before modifications,
+		"original_altitude": # GPSAltitude value,
+		"original_latitude": # GPSLatitude value,
+		"original_longitude": # GPSLongitude value,
+		"orignal_gps_direction_ref": # GPSImgDirectionRef value, else "",
+		"orignal_gps_speed": # GPSSpeed value, else "",
+		"original_heading": # XMP PoseHeadingDegrees` else EXIF `GPSImgDirection`, else "",
+		"original_pitch": # XMP PosePitchDegrees else EXIF GPSPitch, else "",
+		"original_roll": # XMP PosePoseRollDegrees else EXIF GPSRoll, else "",
+		"original_camera_make": Make value,
+		"original_camera_model": Model value,
+		"software_version": 1.0 # shows version of sequence maker used from version txt,
+		"connections": {
+			"[CONNECTION_1_PHOTO_UUID]": {
+				"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),
+				"elevation_mtrs": # reported in meters,
+				"time_sec": # reported in seconds (can be negative, if source photo taken after destination photo),
+				"speed_kmh": # reported in kilometers per hour (can be negative, if source photo taken after destination photo),
+				"heading_deg": # reported in degrees between 0 and 359.99 degrees,
+				"pitch_deg": # reported in degrees between -90 to 90 degrees
+			},
+			[51993d0d-af02-11ea-922c-cd0ce84081fa]: {
+				"distance_mtrs": 12.666786535950974,
+				"elevation_mtrs": 0.43100000000004,
+				"time_sec": 10,
+				"speed_kmh": 6.666786535950974,
+				"heading_deg": 178.76974201469432,
+				"pitch_deg": 0.03402599378909342
+		}
 
 } 
 ```
+
+The script will also output a single JSON document (SEQUENCE_ID.json) containing sequence information, and details of all photos in sequence.
 
 ### Limitations / Considerations
 
