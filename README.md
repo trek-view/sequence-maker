@@ -66,6 +66,8 @@ The output calculations allow us to write the following JSON object information 
 		"latest_time": # latest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
 		"duration_sec: # sequence_latest_time - sequence_earliest_time,
 		"average_speed": # sequence_distance_km / sequence_duration_sec
+		"uploader_sequence_name": # not currently used
+		"uploader_sequence_description": # not currently used
 		"uploader_transport_type": # not currently used
 		"uploader_tags": [] # not currently used
 	}
