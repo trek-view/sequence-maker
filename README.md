@@ -66,6 +66,8 @@ The output calculations allow us to write the following JSON object information 
 		"latest_time": # latest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
 		"duration_sec: # sequence_latest_time - sequence_earliest_time,
 		"average_speed": # sequence_distance_km / sequence_duration_sec
+		"uploader_transport_type": # not currently used
+		"uploader_tags": [] # not currently used
 	}
 	"photo" : {
 		"id": # generated UUID of this photo,
@@ -87,6 +89,10 @@ The output calculations allow us to write the following JSON object information 
 		"original_camera_make": Make value,
 		"original_camera_model": Model value,
 		"software_version": 1.0 # shows version of sequence maker used from version txt,
+		"uploader_nadir_added": # not currently used,
+		"uploader_blur_added": # not currently used,
+		"uploader_gps_track_added": # not currently used,
+		"uploader_gps_modified": # not currently used,
 		"connections": {
 			"[CONNECTION_1_PHOTO_UUID]": {
 				"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),
