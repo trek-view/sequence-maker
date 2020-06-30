@@ -91,6 +91,7 @@ The output calculations allow us to write the following JSON object information 
 		"original_camera_make": Make value,
 		"original_camera_model": Model value,
 		"software_version": 1.0 # shows version of sequence maker used from version txt,
+		"uploader_photo_from_video": # not currently used,
 		"uploader_nadir_added": # not currently used,
 		"uploader_blur_added": # not currently used,
 		"uploader_gps_track_added": # not currently used,
