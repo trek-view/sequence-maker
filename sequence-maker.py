@@ -436,7 +436,12 @@ def make_sequence(args):
             "earliest_time": df_images['GPS_DATETIME'].iloc[0].strftime('%Y:%m:%d %H:%M:%SZ'),
             "latest_time": df_images['GPS_DATETIME'].iloc[-1].strftime('%Y:%m:%d %H:%M:%SZ'),
             "duration_sec": duration_sec,
-            "average_speed": total_distance * 3600 / duration_sec
+            "average_speed_kmh": total_distance * 3600 / duration_sec,
+            "uploader_sequence_name": None, # not currently used
+            "uploader_sequence_description": None,# not currently used
+            "uploader_transport_type": None,# not currently used
+            "uploader_tags": None # not currently used
+
         },
         "photo": {}
     }
@@ -489,6 +494,7 @@ def make_sequence(args):
                     'distance_mtrs': k['DISTANCE_TO_PREV'],
                     'elevation_mtrs': k['DELTA_ALT_TO_PREV'],
                     'heading_deg': k['AZIMUTH_TO_PREV'],
+                    'adj_heading_deg': None,
                     'pitch_deg': k['PITCH_TO_PREV'],
                     'time_sec': k['DELTA_TIME_TO_PREV'],
                     'speed_kmh': (k['DISTANCE_TO_PREV'] * 3600) / (k['DELTA_TIME_TO_PREV'] * 1000) if k['DELTA_TIME_TO_PREV'] != 0 else 0
