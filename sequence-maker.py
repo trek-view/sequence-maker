@@ -151,7 +151,7 @@ def calculate_to_next(df_images, connection_type):
     # 3) altitude diff to next: DELTA_ALT
 
     # 1)
-    if connection_type == 'DELTA_TIME' and df_images.get('GPS_DATETIME'):
+    if connection_type == 'DELTA_TIME':
         df_images['GPS_DATETIME_NEXT'] = df_images['GPS_DATETIME'].shift(-1)
         df_images['DELTA_TIME'] = df_images['GPS_DATETIME_NEXT'] - df_images['GPS_DATETIME']
         df_images.iat[-1, df_images.columns.get_loc('DELTA_TIME')] = df_images.iat[
@@ -315,14 +315,12 @@ def make_sequence(args):
     len_before_disc = len(df_images)
     # keys = ['Composite:GPSDateTime', 'Composite:GPSLatitude', 'Composite:GPSLongitude', 'Composite:GPSAltitude']
     keys = ['Composite:GPSLatitude', 'Composite:GPSLongitude', 'Composite:GPSAltitude']
-    values = ['LATITUDE', 'LONGITUDE', 'ALTITUDE']
+    values = ['LATITUDE', 'LONGITUDE', 'ALTITUDE', 'GPS_DATETIME']
 
-    if connection_type == 'timegps':
+    if connection_type in ['timegps', 'filename']:
         keys.append('Composite:GPSDateTime')
-        values.append('GPS_DATETIME')
-    elif connection_type == 'timecapture':
+    else:
         keys.append('EXIF:DateTimeOriginal')
-        values.append('GPS_DATETIME')
 
     df_images[values] = df_images.apply(
         lambda x: parse_metadata(x, keys, DISCARD), axis=1, result_type='expand')
@@ -345,7 +343,8 @@ def make_sequence(args):
     # Convert datetime from string to datetime format
     df_images['GPS_DATETIME'] = df_images.apply(
         lambda x: datetime.datetime.strptime(x['GPS_DATETIME'], '%Y:%m:%d %H:%M:%SZ')
-        if x.get('GPS_DATETIME') else None, axis=1)
+        if 'Z' in x['GPS_DATETIME']
+        else datetime.datetime.strptime(x['GPS_DATETIME'], '%Y:%m:%d %H:%M:%S'), axis=1)
 
     # Sort images
     df_images.sort_values(CONNECTION_TYPE, axis=0, ascending=True, inplace=True)
@@ -363,7 +362,7 @@ def make_sequence(args):
     print('Filtering images according to input parameters...')
     len_time = len(df_images)
     df_images = generic_connection(df_images, 'DELTA_TIME', MIN_TIME_INTERVAL)\
-        if TIME_FILTERING and df_images.get('GPS_DATE') else df_images
+        if TIME_FILTERING else df_images
     len_dist = len(df_images)
     print('{0} images discarded due to time spacing intervals'.format(len_time - len_dist))
     df_images = calculate_to_next(df_images, 'DISTANCE') if TIME_FILTERING else df_images
@@ -401,7 +400,7 @@ def make_sequence(args):
     # Add additional required data for output json.
     # All related to PREVIOUS image
     print('Setting related data of connected qualified images...')
-    df_images['DISTANCE_TO_PREV'] = -1 * df_images['DISTANCE'].shift(1)
+    df_images['DISTANCE_TO_PREV'] = -1 * df_images['DISTANCE'].shift(1, fill_value=0)
     df_images['DELTA_TIME_TO_PREV'] = -1 * df_images['DELTA_TIME'].shift(1)
     df_images['DELTA_ALT_TO_PREV'] = -1 * df_images['DELTA_ALT'].shift(1)
     df_images['PITCH_TO_PREV'] = -1 * df_images['PITCH'].shift(1)
@@ -424,30 +423,87 @@ def make_sequence(args):
 
     # Create the global JSON structure
     # Main keys will be the image to which the subkeys will be added to
+
     print('\nGenerating JSON object...')
-    descriptions = {k['UUID']: {
-        'connections': {
-            k['UUID_NEXT']: {
-                'distance_mtrs': k['DISTANCE'],
-                'elevation_mtrs': k['DELTA_ALT'],
-                'heading_deg': k['AZIMUTH'],
-                'pitch_deg': k['PITCH'],
-                'time_sec': k['DELTA_TIME']},
+    sequence_uuid = uuid.uuid1()
 
-            k['UUID_PREV']: {
-                'distance_mtrs': k['DISTANCE_TO_PREV'],
-                'elevation_mtrs': k['DELTA_ALT_TO_PREV'],
-                'heading_deg': k['AZIMUTH_TO_PREV'],
-                'pitch_deg': k['PITCH_TO_PREV'],
-                'time_sec': k['DELTA_TIME_TO_PREV']}
+    duration_sec = (df_images['GPS_DATETIME'].iloc[-1] - df_images['GPS_DATETIME'].iloc[0]).total_seconds()
+    total_distance = df_images['DISTANCE'].sum() / 1000
+    report_json = {
+        "sequence": {
+            "id": str(sequence_uuid),
+            "distance_km": total_distance,
+            "earliest_time": df_images['GPS_DATETIME'].iloc[0].strftime('%Y:%m:%d %H:%M:%SZ'),
+            "latest_time": df_images['GPS_DATETIME'].iloc[-1].strftime('%Y:%m:%d %H:%M:%SZ'),
+            "duration_sec": duration_sec,
+            "average_speed": total_distance * 3600 / duration_sec
         },
+        "photo": {}
+    }
 
-        'id': k['UUID'],
-        'create_date': datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d:%H:%M:%S'),
-        'software': 'sequence-maker'
-    }
-        for index, k in df_images.iterrows()
-    }
+    def get_origin_value(df_row, available_keys):
+        for key in available_keys:
+            if df_row['METADATA'].get(key):
+                return df_row['METADATA'].get(key)
+        return ""
+
+    descriptions = {}
+    for index, k in df_images.iterrows():
+        photo_dict = {
+            "id": k['UUID'],
+            "original_GPSDateTime": k['METADATA'].get('Composite:GPSDateTime'),
+            "original_originalDateTime": k['METADATA'].get('EXIF:DateTimeOriginal'),
+            "cli_connection_method": connection_type,
+            "cli_frame_rate_set": MAX_FRAME_RATE,
+            "cli_altitude_min_set": MIN_ALTITUDE_INTERVAL,
+            "cli_distance_min_set": MIN_DISTANCE_INTERVAL,
+            "original_filename": k['IMAGE_NAME'],
+            "original_altitude": k['METADATA'].get('Composite:GPSAltitude'),
+            "original_latitude": k['METADATA'].get('Composite:GPSLatitude'),
+            "original_longitude": k['METADATA'].get('Composite:GPSLongitude'),
+            "orignal_gps_direction_ref": k['METADATA'].get('EXIF:GPSImgDirectionRef', ""),
+            "orignal_gps_speed": k['METADATA'].get('EXIF:GPSSpeed', ""),
+            "original_heading": get_origin_value(k, ["XMP:PoseHeadingDegrees", "EXIF:GPSImgDirection"]),
+            "original_pitch": get_origin_value(k, ["XMP:PosePitchDegrees", "EXIF:GPSPitch"]),
+            "original_roll": get_origin_value(k, ["XMP:PosePoseRollDegrees", "EXIF:GPSRoll"]),
+            "original_camera_make": k['METADATA'].get('EXIF:Make'),
+            "original_camera_model": k['METADATA'].get('EXIF:Model'),
+            "software_version": 1.0,  # shows version of sequence maker used from version txt,
+            "uploader_photo_from_video": None,  # not currently used,
+            "uploader_nadir_added": None,  # not currently used,
+            "uploader_blur_added": None,  # not currently used,
+            "uploader_gps_track_added": None,  # not currently used,
+            "uploader_gps_modified": None,  # not currently used,
+            'connections': {
+                k['UUID_NEXT']: {
+                    'distance_mtrs': k['DISTANCE'],
+                    'elevation_mtrs': k['DELTA_ALT'],
+                    'heading_deg': k['AZIMUTH'],
+                    'pitch_deg': k['PITCH'],
+                    'time_sec': k['DELTA_TIME'],
+                    'speed_kmh': (k['DISTANCE'] * 3600) / (k['DELTA_TIME'] * 1000) if k[
+                                                                                          'DELTA_TIME'] != 0 else 0
+                },
+
+                k['UUID_PREV']: {
+                    'distance_mtrs': k['DISTANCE_TO_PREV'],
+                    'elevation_mtrs': k['DELTA_ALT_TO_PREV'],
+                    'heading_deg': k['AZIMUTH_TO_PREV'],
+                    'pitch_deg': k['PITCH_TO_PREV'],
+                    'time_sec': k['DELTA_TIME_TO_PREV'],
+                    'speed_kmh': (k['DISTANCE_TO_PREV'] * 3600) / (k['DELTA_TIME_TO_PREV'] * 1000) if k['DELTA_TIME_TO_PREV'] != 0 else 0
+                }
+            }
+        }
+        descriptions.update({
+            k['UUID']: {
+                "photo": photo_dict,
+                "sequence": report_json["sequence"].copy(),
+            }
+        })
+        report_json["photo"].update({
+            index + 1: photo_dict.copy()
+        })
 
     img_id_link = {k['UUID']: k['IMAGE_NAME'] for index, k in df_images.iterrows()}
 
@@ -455,12 +511,12 @@ def make_sequence(args):
     # the NEXT image of the last image
     to_del = []
     for image in descriptions.keys():
-        for connection in descriptions[image]['connections'].keys():
+        for connection in descriptions[image]['photo']['connections'].keys():
             if type(connection) == float:
                 to_del.append([image, connection])
 
     for z, y in to_del:
-        del descriptions[z]['connections'][y]
+        del descriptions[z]['photo']['connections'][y]
 
         # For each image, write the JSON into EXIF::ImageDescription
     print('Writing metadata to EXIF::ImageDescription of qualified images...\n')
@@ -470,6 +526,10 @@ def make_sequence(args):
                        bytes("{0}".format(img_id_link[image_uuid]), 'utf-8'))
 
     clean_up_new_files(OUTPUT_PHOTO_DIRECTORY, [image for image in img_id_link.values()])
+
+    print('Writing report json')
+    with open("{}.json".format(sequence_uuid), "w") as outfile:
+        json.dump(report_json, outfile)
 
     input('\nMetadata successfully added to images.\n\nPress any key to quit')
     quit()
