@@ -218,8 +218,9 @@ class ExifTool(object):
 		logging.debug(proc_args) 
 		
 		with open(os.devnull, "w") as devnull:
-			startup_info = subprocess.STARTUPINFO()
+			startup_info = None
 			if not self.win_shell:
+				startup_info = subprocess.STARTUPINFO()
 				SW_FORCEMINIMIZE = 11 # from win32con
 				# Adding enum 11 (SW_FORCEMINIMIZE in win32api speak) will
 				# keep it from throwing up a DOS shell when it launches.
