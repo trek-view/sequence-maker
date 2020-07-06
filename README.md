@@ -41,11 +41,12 @@ The order of joins (what photo is connected to the next) is defined by the user 
 For geotagged photos taken in a timelapse, it is possible to provide a fairly accurate estimate of the azimuth and pitch (see: limitations) because timelapses are typically shot in ascending time order (00:00:00 > 00:00:05 > 00:00:10) at set intervals (e.g. one photo every 5 seconds). 
 
 * elevation change to destination (`elevation_mtrs`): reported as `GPSAltitude`, can be calculated as "destination photo altitude - source photo altitude"
-* distance to destintion (`distance_mtrs`): using position of two photos (`GPSLatitude` to `GPSLongitude`) can calculate distance using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
+* distance to destination (`distance_mtrs`): using position of two photos (`GPSLatitude` to `GPSLongitude`) can calculate distance using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
 * time difference to destination (`time_sec`): using either `GPSDateTime` or `originalDateTime`, can be calculated as  as "destination photo time - source photo time"
 * speed to destination (`speed_kmh`): using `distance_mtrs` and `time_sec` it is possible to calculate speed between two photos (speed = `distance_mtrs` / `time_sec`)
 * azimuth to destination (`heading_deg`) (estimate): calculated using the vertical angle between the `GPSAltitude` value of source and destination photo.
 * pitch to destination (`pitch_deg`) (estimate): calculated using the horizontal angle between the source photo (`GPSLatitude`/`GPSLongitude`) and the destination photo (`GPSLatitude`/`GPSLongitude`).
+* adjusted heading to destination (`adj_heading_deg`): reported in degrees between 0 and 359.99 degrees. Only calculated for previous photo connection. Calculated using next photo `heading_deg` - previous `heading_deg`. Calculation can return negative value, in which case it is converted to positive number.
 
 Once all these have been calculated, it is possible to calculate the following values for sequence level information.
 
@@ -65,7 +66,7 @@ The output calculations allow us to write the following JSON object information 
 		"earliest_time": # earliest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
 		"latest_time": # latest time GPSDateTime (if connection method gps / filename) or originalDateTime (if connection originalDateTime) value for photo in sequence,
 		"duration_sec: # sequence_latest_time - sequence_earliest_time,
-		"average_speed": # sequence_distance_km / sequence_duration_sec
+		"average_speed_kmh": # sequence_distance_km / sequence_duration_sec
 		"uploader_sequence_name": # not currently used
 		"uploader_sequence_description": # not currently used
 		"uploader_transport_type": # not currently used
@@ -97,24 +98,45 @@ The output calculations allow us to write the following JSON object information 
 		"uploader_gps_track_added": # not currently used,
 		"uploader_gps_modified": # not currently used,
 		"connections": {
-			"[CONNECTION_1_PHOTO_UUID]": {
+			"[CONNECTION_1_PHOTO_UUID (NEXT PHOTO)]": {
 				"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),
-				"elevation_mtrs": # reported in meters,
+				"elevation_mtrs": # reported in meters (can be negative if destination photo is lower)
 				"time_sec": # reported in seconds (can be negative, if source photo taken after destination photo),
 				"speed_kmh": # reported in kilometers per hour (can be negative, if source photo taken after destination photo),
 				"heading_deg": # reported in degrees between 0 and 359.99 degrees,
+				"adj_heading_deg": # reported in degrees between 0 and 359.99 degrees. reported for previous photo connection only,
 				"pitch_deg": # reported in degrees between -90 to 90 degrees
-			},
+		},
+			"[CONNECTION_2_PHOTO_UUID (PREVIOUS PHOTO)]": {
+			}
+		}
+
+} 
+```
+
+First and last photos in seqence always have 1 connection (either forward and back). All other photo connections will have 2 connections (both forward and back).
+
+```
+		"connections": {
 			[51993d0d-af02-11ea-922c-cd0ce84081fa]: {
 				"distance_mtrs": 12.666786535950974,
 				"elevation_mtrs": 0.43100000000004,
 				"time_sec": 10,
 				"speed_kmh": 6.666786535950974,
 				"heading_deg": 178.76974201469432,
+				"adj_heading_deg": ,
 				"pitch_deg": 0.03402599378909342
-		}
-
-} 
+				},
+			[748495d0d-af03-19fa-048a-cf8ce74089ui]: {
+				"distance_mtrs": -22.039488888888888,
+				"elevation_mtrs": -0.73700000000002,
+				"time_sec": -10,
+				"speed_kmh": -6.546786535950975,
+				"heading_deg": 350.88884201469438,
+				"adj_heading_deg": "172.1191",
+				"pitch_deg": -0.05502599378909355
+				}
+			}
 ```
 
 The script will also output a single JSON document (SEQUENCE_ID.json) containing sequence information, and details of all photos in sequence.
@@ -134,12 +156,6 @@ If you're shooting at a low frame rate, sharply changing direction, or holding y
 This script allows you to discard images that don't match a certain criteria (for example, you want to space them a minimum of 10 meters apart) and will lead to a larger level of inaccuracy for estimations.
 
 In cases where more images are discarded the source and destination photo used for calculations might therefore be very far apart, and thus less likely for the source photo to be facing the destination photo.
-
-**Final photo**
-
-The last photo in the timelapse (sequence) has no subsequent photo. Therefore, as a simple solution the last photo simply inherits the values of the previous photo in the sequence.
-
-This 'best-guess' will not be suitable when precise accuracy is needed.
 
 **Missing GPS**
 
@@ -197,12 +213,12 @@ _A note on spatial distance minimum. `-a`. is really designed for skydiving to d
 
 If two or more of these arguments are used (`-f`, `-s` or `-a`) the script will process in the order: 1) frame rate `-f`, 2) spatial distance minimum `-s`, and 3) altitude difference minimum `-a`.
 
-* -j: join mode (optional: default is timegps):
+* -c: connection mode (optional: default is timegps):
 	- timegps (`GPSDateTime` of image, ascending e.g. 00:01 - 00:10); OR
 	- timecapture (`CaptureTime` of image, ascending e.g. 00:01 - 00:10)
 	- filename (ascending e.g A.jpg > Z.jpg)
 
-_A note on join modes. Generally you should join by time unless you have a specific use-case. Filename will join the photo to the next photo in ascending alphabetical order. We recommend using `timegps` ([EXIF] `GPSDateTime`) not `timecapture` ([EXIF] `originalDateTime`) unless you are absolutely sure `originalDateTime` is correct. Many 360 stitching tools rewrite `originalDateTime` as datetime of stitching process not the datetime the image was actually captured. This can cause issues when sorting by time (e.g. images might not be stitched in capture order). Therefore, `GPSDateTime` is more likely to represent the true time of capture._
+_A note on connection modes. Generally you should connect by time unless you have a specific use-case. Filename will connect the photo to the next photo in ascending alphabetical order. We recommend using `timegps` ([EXIF] `GPSDateTime`) not `timecapture` ([EXIF] `originalDateTime`) unless you are absolutely sure `originalDateTime` is correct. Many 360 stitching tools rewrite `originalDateTime` as datetime of stitching process not the datetime the image was actually captured. This can cause issues when sorting by time (e.g. images might not be stitched in capture order). Therefore, `GPSDateTime` is more likely to represent the true time of capture._
 
 * d: discard: discard images that lack GPS or time tags and continue (required: if no GPS data in image)
 * e: exiftool-exec-path (optional)
@@ -213,7 +229,7 @@ _A note on join modes. Generally you should join by time unless you have a speci
 ### Format
 
 ```
-python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d -e [PATH TO EXIFTOOL EXECUTABLE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
+python sequence-maker.py -[SPACING] [SPACING VALUE] -[CONNECT MODE] -d -e [PATH TO EXIFTOOL EXECUTABLE] [INPUT PHOTO DIRECTORY] [OUTPUT PHOTO DIRECTORY]
 ```
 
 ### Examples
@@ -223,13 +239,13 @@ python sequence-maker.py -[SPACING] [SPACING VALUE] -[JOIN MODE] -d -e [PATH TO 
 _Mac/Linux_
 
 ```
-python sequence-maker.py -f 1 -s 3 -j timegps -d INPUT_DIRECTORY OUTPUT_DIRECTORY
+python sequence-maker.py -f 1 -s 3 -c timegps -d INPUT_DIRECTORY OUTPUT_DIRECTORY
 ````
 
 _Windows_
 
 ```
-python sequence-maker.py -f 1 -s 3 -j timegps -d "INPUT_DIRECTORY" "OUTPUT_DIRECTORY"
+python sequence-maker.py -f 1 -s 3 -c timegps -d "INPUT_DIRECTORY" "OUTPUT_DIRECTORY"
 ```
 
 ### Output
@@ -282,7 +298,7 @@ You can use exiftool (which will already be installed) to check the metadata.
 This skeleton command will output all the metadata in the specified image:
 
 ```
-exiftool -G -s -b -j -a -T [PATH OF IMAGE TO CHECK] > OUTPUT.json
+exiftool -G -s -b -c -a -T [PATH OF IMAGE TO CHECK] > OUTPUT.json
 ```
 
 It will give a complete JSON document. Here's a snippet of the output:
@@ -301,4 +317,4 @@ We offer community support for all our software on our Campfire forum. [Ask a qu
 
 ## License
 
-Sequence Maker is licensed under a [GNU AGPLv3 License](https://github.com/trek-view/sequence-maker/blob/master/LICENSE.txt).
+Sequence Maker is licensed under a [GNU AGPLv3 License](/LICENSE.txt).
