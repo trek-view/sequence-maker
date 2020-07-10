@@ -70,7 +70,6 @@ The output calculations allow us to write the following JSON object information 
 		"uploader_sequence_name": # not currently used
 		"uploader_sequence_description": # not currently used
 		"uploader_transport_type": # not currently used
-		"uploader_tags": [] # not currently used
 	}
 	"photo" : {
 		"id": # generated UUID of this photo,
@@ -97,6 +96,7 @@ The output calculations allow us to write the following JSON object information 
 		"uploader_blur_added": # not currently used,
 		"uploader_gps_track_added": # not currently used,
 		"uploader_gps_modified": # not currently used,
+		"uploader_tags": [] # not currently used
 		"connections": {
 			"[CONNECTION_1_PHOTO_UUID (NEXT PHOTO)]": {
 				"distance_mtrs": # reported in meters (can be negative, if source photo taken after destination photo),

@@ -439,8 +439,7 @@ def make_sequence(args):
             "average_speed_kmh": total_distance * 3600 / duration_sec if duration_sec != 0 else 0,
             "uploader_sequence_name": None, # not currently used
             "uploader_sequence_description": None,# not currently used
-            "uploader_transport_type": None,# not currently used
-            "uploader_tags": None # not currently used
+            "uploader_transport_type": None# not currently used
         },
         "photo": {}
     }
@@ -478,6 +477,7 @@ def make_sequence(args):
             "uploader_blur_added": None,  # not currently used,
             "uploader_gps_track_added": None,  # not currently used,
             "uploader_gps_modified": None,  # not currently used,
+            "uploader_tags": None, # not currently used
             'connections': {
                 k['UUID_NEXT']: {
                     'distance_mtrs': k['DISTANCE'],
