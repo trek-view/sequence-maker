@@ -471,6 +471,7 @@ def make_sequence(args):
             "original_roll": get_origin_value(k, ["XMP:PosePoseRollDegrees", "EXIF:GPSRoll"]),
             "original_camera_make": k['METADATA'].get('EXIF:Make'),
             "original_camera_model": k['METADATA'].get('EXIF:Model'),
+            "original_projection": k['METADATA'].get('XMP:ProjectionType'),
             "software_version": 1.0,  # shows version of sequence maker used from version txt,
             "uploader_photo_from_video": None,  # not currently used,
             "uploader_nadir_added": None,  # not currently used,

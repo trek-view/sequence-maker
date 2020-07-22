@@ -90,6 +90,7 @@ The output calculations allow us to write the following JSON object information 
 		"original_roll": # XMP PosePoseRollDegrees else EXIF GPSRoll, else "",
 		"original_camera_make": Make value,
 		"original_camera_model": Model value,
+		"original_projection": Projection type value,
 		"software_version": 1.0 # shows version of sequence maker used from version txt,
 		"uploader_photo_from_video": # not currently used,
 		"uploader_nadir_added": # not currently used,
